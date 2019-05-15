@@ -65,7 +65,7 @@ ApplicationWindow{
                     //enabled: !crazyConnect.ifConnected;
                     property int itemWidth : 90;
                     //端口相关
-                    Text{
+                    Text
                         text: qsTr("Ports")+ translator.emptyString;
                         width:parent.itemWidth;
                         color : tcolor
