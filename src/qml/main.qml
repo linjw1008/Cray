@@ -5,24 +5,27 @@ import QtQuick.Dialogs 1.2
 import Client.Component 1.0 as Client
 ApplicationWindow{
     visible:true;
-    width:540;
-    height:390;
+    width:580;
+    height:410;
+    /*
+    //固定窗口大小
     minimumHeight: height;
     minimumWidth: width;
     maximumHeight: height;
     maximumWidth: width;
+    */
     color:"lightgrey";
     id:window;
     Client.Serial { id : serial; }
     Client.Translator{ id : translator; }
     Timer{
         id:timer;
-        interval:15;
+        interval:15;//15ms启动一次
         running:false;
         repeat:true;
         onTriggered: {
-            crazyShow.updateCommand();
-            serial.sendCommand();
+            crazyShow.updateCommand();//调用serial.updateCommandParams()
+            serial.sendCommand();//把数据发出去
         }
     }
     Rectangle{
@@ -34,6 +37,7 @@ ApplicationWindow{
             anchors.bottom: parent.bottom;
             color : "lightgrey";
             id:radioRectangle;
+            //最上面一条Box
             GroupBox{
                 id : crazyListRectangle;
                 width: parent.width - 15;
@@ -42,7 +46,6 @@ ApplicationWindow{
                 anchors.margins: 10;
                 title :qsTr("Sender Setting") + translator.emptyString;
                 Grid{
-
                     height:parent.height;
                     id : crazyListView;
                     verticalItemAlignment: Grid.AlignVCenter;
@@ -53,6 +56,7 @@ ApplicationWindow{
                     columns:4;
                     enabled: !crazyConnect.ifConnected;
                     property int itemWidth : 90;
+                    //端口相关
                     Text{
                         text: qsTr("Ports")+ translator.emptyString;
                         width:parent.itemWidth;
@@ -63,6 +67,7 @@ ApplicationWindow{
                         onActivated: serial.sendCrazySetting(0,index);
                         width:parent.itemWidth;
                     }
+                    //频率相关
                     Text{
                         text: qsTr("Frequency")+ translator.emptyString;
                         width:parent.itemWidth;
@@ -75,6 +80,7 @@ ApplicationWindow{
                     }
                 }
             }
+            //连接按钮
             Button{
                 id : crazyConnect;
                 text : (ifConnected ? qsTr("Disconnect") : qsTr("Connect")) + translator.emptyString;
@@ -96,6 +102,7 @@ ApplicationWindow{
                     ifConnected = !ifConnected;
                 }
             }
+            //下面大的Box
             GroupBox{
                 title : qsTr("Manual Control") + translator.emptyString;
                 width:parent.width - 15;
@@ -104,66 +111,79 @@ ApplicationWindow{
                 id : groupBox2;
                 Grid{
                     id : crazyShow;
-                    columns: 6;
+                    columns: 6;//6列
                     verticalItemAlignment: Grid.AlignVCenter;
                     horizontalItemAlignment: Grid.AlignLeft;
                     anchors.horizontalCenter: parent.horizontalCenter;
                     columnSpacing: 10;
                     rowSpacing: 5;
-                    property int m_VEL : 255
-                    property int m_VELR : 1023
-                    property int velX : 0;
-                    property int velY : 0;
-                    property int velR : 0;
-                    property int velocityMax : 511;
-                    property int velocityRMax : 511;
-                    property bool shoot : false;
-                    property bool dribble : false;
-                    property int power : 20;
-                    property int velXStep : 20;
-                    property int velYStep : 20;
-                    property int velRStep : 20;
-                    property bool mode : false;
-                    property int robotID : 1;
-                    property int rushSpeed : 20;
-                    property bool rush : false;
-                    property int dribbleMaxLevel : 3;
-                    property int dribbleLevel : 2;
+                    property int robotID : 1;//Robot
+                    property int velX : 0;//Vx
+                    property int velY : 0;//Vy
+                    property int velR : 0;//Vr
+                    property bool shoot : false;//Shoot
+                    property bool dribble : false;//Dribb
+                    property bool rush : false;//Rush
 
+                    property int velXStep : 20;//VxStep
+                    property int velYStep : 20;//VyStep
+                    property int velRStep : 20;//VrStep
+                    property bool mode : false;//KickMode
+                    property int dribbleLevel : 2;//DribLevel
+                    property int rushSpeed : 20;//RushSpeed
+
+                    property int m_VEL : 255//MaxVel
+                    property int velocityRMax : 511;//MaxVelR
+                    property int power : 20;//KickPower
+
+                    property int m_VELR : 1023
+                    property int velocityMax : 511;//最大速度
+                    property int dribbleMaxLevel : 3;//吸球最大等级
+                    property int kickPowerMax: 127;//最大踢球力量
                     property int itemWidth : 70;
 
                     Text{ text:qsTr("Robot") + translator.emptyString }
+                    //最多12辆车
                     SpinBox{ minimumValue:1; maximumValue:12; value:parent.robotID; width:parent.itemWidth
                         onEditingFinished:{parent.robotID = value}}
                     Text{ text:"Stop" }
+                    //有用吗？
                     Button{ text:qsTr("[Space]") + translator.emptyString;width:parent.itemWidth
                     }
                     Text{ text:" " }
                     Text{ text:" " }
                     Text{ text:qsTr("Vx [W/S]") + translator.emptyString }
+                    //Vx:(-m_VEL, m_VEL)
                     SpinBox{ minimumValue:-crazyShow.m_VEL; maximumValue:crazyShow.m_VEL; value:parent.velX;width:parent.itemWidth
                         onEditingFinished:{parent.velX = value;}}
                     Text{ text:qsTr("VxStep") + translator.emptyString }
-                    SpinBox{ minimumValue:1; maximumValue:crazyShow.m_VEL; value:parent.velXStep;width:parent.itemWidth
+                    //VxStep:(1, m_VEL)
+                    SpinBox{ minimumValue:1; maximumValue:crazyShow.m_VEL; value:parent.velXStep;width:parent.itemWidth;
                         onEditingFinished:{parent.velXStep = value;}}
                     Text{ text:qsTr("MaxVel") + translator.emptyString }
+                    //MaxVel:(1, velocityMax)
                     SpinBox{ minimumValue:1; maximumValue:crazyShow.velocityMax; value:parent.m_VEL;width:parent.itemWidth
                         onEditingFinished:{parent.m_VEL = value;}}
                     Text{ text:qsTr("Vy [A/D]") + translator.emptyString}
+                    //Vy:(-m_VEL, m_VEL)
                     SpinBox{ minimumValue:-crazyShow.m_VEL; maximumValue:crazyShow.m_VEL; value:parent.velY;width:parent.itemWidth
                         onEditingFinished:{parent.velY = value;}}
                     Text{ text:qsTr("VyStep") + translator.emptyString }
+                    //VyStep:(1, m_VEL)
                     SpinBox{ minimumValue:1; maximumValue:crazyShow.m_VEL; value:parent.velYStep;width:parent.itemWidth
                         onEditingFinished:{parent.velYStep = value;}}
                     Text{ text:" " }
                     Text{ text:" " }
                     Text{ text:qsTr("Vr [Left/Right]")  + translator.emptyString}
+                    //Vr:(-m_VEL, m_VEL)
                     SpinBox{ minimumValue:-crazyShow.m_VELR; maximumValue:crazyShow.m_VELR; value:parent.velR;width:parent.itemWidth
                         onEditingFinished:{parent.velR = value;}}
                     Text{ text:qsTr("VrStep") + translator.emptyString }
+                    //VrStep:(1, m_VELR)
                     SpinBox{ minimumValue:1; maximumValue:crazyShow.m_VELR; value:parent.velRStep;width:parent.itemWidth
                         onEditingFinished:{parent.velRStep = value;}}
                     Text{ text:qsTr("MaxVelR") + translator.emptyString }
+                    //MaxVelR:(1, velocityRMax)
                     SpinBox{ minimumValue:1; maximumValue:crazyShow.velocityRMax; value:parent.m_VELR;width:parent.itemWidth
                         onEditingFinished:{parent.m_VELR = value;}}
                     Text{ text:qsTr("Shoot [E]") + translator.emptyString}
@@ -180,7 +200,8 @@ ApplicationWindow{
                         }
                     }
                     Text{ text:qsTr("KickPower") + translator.emptyString }
-                    SpinBox{ minimumValue:0; maximumValue:127; value:parent.power;width:parent.itemWidth
+                    //KickPower:(1, kickPowerMax)
+                    SpinBox{ minimumValue:0; maximumValue:parent.kickPowerMax; value:parent.power;width:parent.itemWidth
                         onEditingFinished:{parent.power = value;}}
                     Text{ text:qsTr("Dribb [Q]") + translator.emptyString }
                     Button{ text:(parent.dribble ? qsTr("true") : qsTr("false")) +translator.emptyString;width:parent.itemWidth
@@ -188,8 +209,8 @@ ApplicationWindow{
                             parent.dribble = !parent.dribble;
                         }
                     }
-
                     Text{ text:qsTr("DribLevel")  + translator.emptyString}
+                    //DribLevel:(0, dribbleMaxLevel)
                     SpinBox{ minimumValue:0; maximumValue:crazyShow.dribbleMaxLevel; value:parent.dribbleLevel;width:parent.itemWidth
                         onEditingFinished:{parent.dribbleLevel = value;}}
                     Text{ text:" " }
@@ -202,11 +223,14 @@ ApplicationWindow{
                         }
                     }
                     Text{ text:qsTr("RushSpeed")  + translator.emptyString}
+                    //RushSpeed:(0, m_VEL)
                     SpinBox{ minimumValue:0; maximumValue:crazyShow.m_VEL; value:parent.rushSpeed;width:parent.itemWidth
                         onEditingFinished:{parent.rushSpeed = value;}}
                     Rectangle{
                         width:parent.itemWidth; height:20; color:parent.shoot ? "red" : "lightgrey";
                     }
+
+                    //键盘响应实现
                     Keys.onPressed:getFocus(event);
                     function getFocus(event){
                         switch(event.key){
@@ -269,6 +293,7 @@ ApplicationWindow{
                         }
                         updateCommand();
                     }
+                    //serial.updateCommandParams在C++中实现
                     function updateCommand(){
                         serial.updateCommandParams(crazyShow.robotID,crazyShow.velX,crazyShow.velY,crazyShow.velR,crazyShow.dribble,crazyShow.dribbleLevel,crazyShow.mode,crazyShow.shoot,crazyShow.power);
                     }
@@ -323,6 +348,7 @@ ApplicationWindow{
                     }
                 }
             }
+            //最下面的Start按钮
             Button{
                 id:crazyStart;
                 text:qsTr("Start") + translator.emptyString;
@@ -331,14 +357,14 @@ ApplicationWindow{
                 anchors.rightMargin: 20;
                 anchors.top:groupBox2.bottom;
                 anchors.topMargin: 10;
-                enabled : crazyConnect.ifConnected;
+                enabled : crazyConnect.ifConnected;//如果连接成功按钮才有效
                 onClicked:{
                     handleClickEvent();
                 }
                 function handleClickEvent(){
-                    if(ifStarted){
+                    if(ifStarted){//若开始，定时器关闭
                         timer.stop();
-                    }else{
+                    }else{//若未开始，定时器打开
                         timer.start();
                     }
                     ifStarted = !ifStarted;
