@@ -14,12 +14,16 @@ HEADERS += \
     $$PWD/src/singleton.hpp \
     $$PWD/src/lib/crc/crc.h \
     $$PWD/src/translation.hpp \
+    $$PWD/src/udpSender.h \
+    $$PWD/src/packet.h
 
 SOURCES += \
     $$PWD/src/main.cpp \
     $$PWD/src/radiopacket.cpp \
     $$PWD/src/serialobject.cpp \
     $$PWD/src/lib/crc/crc.cpp \
+    $$PWD/src/udpSender.cpp \
+    $$PWD/src/packet.cpp
 
 TRANSLATIONS = t1_zh.ts
 

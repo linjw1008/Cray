@@ -59,8 +59,8 @@ private:
     qint16 velR;
     quint16 ctrlPowerLevel;
     quint16 shootPowerLevel;
-    quint8 pidTuneMode;
-    quint8 shootPowerCurveTuneMode;
+    quint8 pidTuneMode = 1;
+    quint8 shootPowerCurveTuneMode = 1;
     float p;
     float i;
     float d;

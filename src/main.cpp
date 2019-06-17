@@ -6,12 +6,16 @@
 #include <iostream>
 #include "serialobject.h"
 #include "translation.hpp"
+#include "udpSender.h"
+#include "packet.h"
 using namespace std;
 
 
 void qmlRegister(){
     qmlRegisterType<SerialObject>("Client.Component", 1, 0, "Serial");
     qmlRegisterType<TranslationTest>("Client.Component", 1, 0, "Translator");
+    qmlRegisterType<udpSender>("Client.Component", 1, 0, "UdpSender");
+    qmlRegisterType<packet>("Client.Component", 1, 0, "Packet");
 }
 int main(int argc, char *argv[]) {
     QCoreApplication::setAttribute(Qt::AA_EnableHighDpiScaling);

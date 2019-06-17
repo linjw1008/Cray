@@ -20,18 +20,25 @@ ApplicationWindow{
     property color tcolor : "black"
     Client.Serial { id : serial; }
     Client.Translator{ id : translator; }
+    Client.UdpSender {id : udpsender; }
+    Client.Packet {id : packet; }
     Timer{
         id:timer;
-        interval:15;//15ms启动一次
+        interval:100;//15ms启动一次
         running:false;
         repeat:true;
         onTriggered: {
             pidTuneShow.updateMode();//设置是否为PID调节模式
             shootPowerCurveTuneShow.updateMode();//设置是否为射门力度曲线调节模式
-            crazyShow.updateCommand();//调用serial.updateCommandParams()
+            moveParametersList.updateCommand();//调用serial.updateCommandParams()
             serial.sendCommand();//把数据发出去
-            if(crazyShow.shoot){
-                crazyShow.shoot = !crazyShow.shoot;
+            //发送网络包
+            //packet.getCommandPacket(p);
+            //udpsender.updatePacket(p);
+            packet.sendUdpPacket(0);
+
+            if(moveParametersList.shoot){
+                moveParametersList.shoot = !moveParametersList.shoot;
             }
         }
     }
@@ -44,92 +51,154 @@ ApplicationWindow{
             anchors.top: parent.top;
             anchors.bottom: parent.bottom;
             color: wcolor
-            id:radioRectangle;
+            id:transmitterConfig;
             //最上面一条Box
             GroupBox{
-                id : crazyListRectangle;
+                id : configParameters;
                 width: parent.width - 15;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 anchors.top: parent.top;
                 anchors.margins: 10;
-                title :qsTr("Sender Setting") + translator.emptyString;
+                title :qsTr("Transmitter Setting") + translator.emptyString;
+
+                //设置参数
+                property string remoteIP: remoteIP.text;
+                property string remoteGate: remoteGate.text;
+                property string remoteMask: remoteMask.text;
+                property string remotePort: remotePort.text;
+                property int frequency: frequency.currentIndex;
+
                 Grid{
                     height:parent.height;
-                    id : crazyListView;
+                    id : configParametersList;
                     verticalItemAlignment: Grid.AlignVCenter;
                     horizontalItemAlignment: Grid.AlignLeft;
                     anchors.horizontalCenter: parent.horizontalCenter;
-                    columnSpacing: 40;
+                    columnSpacing: 10;
                     rowSpacing: 5;
-                    columns:4;
-                    //enabled: !crazyConnect.ifConnected;
-                    property int itemWidth : 90;
-                    //端口相关
-                    Text
-                        text: qsTr("Ports")+ translator.emptyString;
-                        width:parent.itemWidth;
-                        color : tcolor
+                    columns: 8;
+                    rows: 2;
+                    //enabled: !transmitterConnect.ifConnected;
+                    property int textWidth : 30;
+                    property int inputWidth : 90;
+
+
+                    //ip设置相关
+                    Text {
+                        text: qsTr("remote IP:");
+                        width: parent.textWidth*2;
+                        color: tcolor;
                     }
-                    ComboBox{
-                        id : crazyPort;
-                        model:serial.getCrazySetting(0);
-                        currentIndex : serial.getDefaultIndex(0);
-                        onActivated: serial.sendCrazySetting(0,index);
-                        width:parent.itemWidth;
+                    TextField{
+                        id: remoteIP;
+                        focus: true;
+                        text: "192.168.0.100";
+                        onEditingFinished: /*TODO*/console.debug(configParameters.remoteIP);
+                        width: parent.inputWidth;
+                    }
+                    Text {
+                        text: qsTr("Gate:");
+                        width: parent.textWidth;
+                        color: tcolor;
+                    }
+                    TextField{
+                        id: remoteGate;
+                        focus: true;
+                        text: "192.168.0.1";
+                        onEditingFinished: /*TODO*/console.debug(configParameters.remoteGate);
+                        width: parent.inputWidth;
+                    }
+                    Text {
+                        text: qsTr("Mask:");
+                        width: parent.textWidth;
+                        color: tcolor;
+                    }
+                    TextField{
+                        id: remoteMask;
+                        focus: true;
+                        text: "255.255.255.0";
+                        onEditingFinished: /*TODO*/console.debug(configParameters.remoteMask);
+                        width: parent.inputWidth;
+                    }
+                    Text {
+                        text: qsTr("Port:");
+                        width: parent.textWidth;
+                        color: tcolor;
+                    }
+                    TextField{
+                        id: remotePort;
+                        focus: true;
+                        text: "10007";
+                        onEditingFinished: /*TODO*/console.debug(configParameters.remotePort);
+                        width: parent.inputWidth/2;
                     }
                     //频率相关
                     Text{
                         text: qsTr("Frequency")+ translator.emptyString;
-                        width:parent.itemWidth;
+                        width:parent.textWidth;
                         color: tcolor
                     }
                     ComboBox{
-                        model:serial.getCrazySetting(1);
-                        currentIndex : serial.getDefaultIndex(1);
-                        onActivated: serial.sendCrazySetting(1,index);
-                        width:parent.itemWidth;
+                        id: frequency;
+                        model: ListModel{
+                            id: frequencyList
+                            ListElement { text: "0"}
+                            ListElement { text: "1"}
+                            ListElement { text: "2"}
+                            ListElement { text: "3"}
+                            ListElement { text: "4"}
+                            ListElement { text: "5"}
+                            ListElement { text: "6"}
+                            ListElement { text: "7"}
+                            ListElement { text: "8"}
+                            ListElement { text: "9"}
+                        }
+                        currentIndex : 0;
+                        onActivated:/*TODO*/console.debug(configParameters.frequency);
+                        width:parent.inputWidth;
                     }
                 }
             }
             //连接按钮
             Button{
-                id : crazyConnect;
+                id : transmitterConnect;
+                width: 90;
                 state : "unconnected"
-                property bool ifConnected:false;
+                property bool isConnected:false;
                 states:[
                     State{
                         name: "connected"
-                        PropertyChanges{target:crazyConnect ; text:qsTr("Disconnect") + translator.emptyString}
-                        PropertyChanges{target:crazyConnect ; ifConnected:true}
+                        PropertyChanges{target:transmitterConnect ; text:qsTr("Disconnect")}
+                        PropertyChanges{target:transmitterConnect ; isConnected:true}
                         PropertyChanges{target:crazyStart ; enabled:true}
-                        PropertyChanges{target:crazyListView ; enabled:false}
+                        PropertyChanges{target:configParametersList ; enabled:false}
                     },
                     State{
                         name: "unconnected"
-                        PropertyChanges{target:crazyConnect ; text:qsTr("Connect") + translator.emptyString}
-                        PropertyChanges{target:crazyConnect ; ifConnected:false}
+                        PropertyChanges{target:transmitterConnect ; text:qsTr("Connect")}
+                        PropertyChanges{target:transmitterConnect ; isConnected:false}
                         PropertyChanges{target:crazyStart ; enabled:false}
-                        PropertyChanges{target:crazyListView ; enabled:true}
+                        PropertyChanges{target:configParametersList ; enabled:true}
                     }
                 ]
-                //text : (ifConnected ? qsTr("Disconnect") : qsTr("Connect")) + translator.emptyString;
-                anchors.top: crazyListRectangle.bottom;
+                anchors.top: configParameters.bottom;
                 anchors.right: parent.right;
                 anchors.rightMargin: 20;
                 anchors.topMargin: 5;
                 onClicked: clickEvent();
                 function clickEvent(){
-                    if(ifConnected){
+                    if(isConnected){
                         timer.stop();
-                        if(crazyStart.ifStarted) crazyStart.handleClickEvent();
-                        serial.closeSerialPort();
-                        crazyConnect.state = "unconnect"
+                        transmitterConnect.state = "unconnected";
+                        packet.configDHCP();
                     }else{
-                        if(crazyPort.currentText != ""){
-                            serial.openSerialPort();
-                            serial.sendStartPacket();
-                            crazyConnect.state = "connected";
-                        }
+                        transmitterConnect.state = "connected";
+                        packet.configUdpRemoteIP(configParameters.remoteIP, configParameters.remotePort, configParameters.remoteMask, configParameters.remoteGate);
+                        console.debug("config remote ip");
+                        packet.updateTransmitterFrequency(configParameters.frequency);
+                        packet.sendUdpPacket(1);
+                        console.debug("config frequency: " + configParameters.frequency);
+
                     }
                 }
             }
@@ -137,11 +206,11 @@ ApplicationWindow{
             GroupBox{
                 title : qsTr("Manual Control") + translator.emptyString;
                 width:parent.width - 15;
-                anchors.top:crazyConnect.bottom;
+                anchors.top:transmitterConnect.bottom;
                 anchors.horizontalCenter: parent.horizontalCenter;
-                id : groupBox2;
+                id : moveParameters;
                 Grid{
-                    id : crazyShow;
+                    id : moveParametersList;
                     columns: 6;//6列
                     rows: 5
                     verticalItemAlignment: Grid.AlignVCenter;
@@ -174,74 +243,74 @@ ApplicationWindow{
 
                     Text{ text:qsTr("Robot") + translator.emptyString; color: tcolor;}
                     //最多12辆车
-                    SpinBox{ minimumValue:1; maximumValue:12; value:parent.robotID; width:parent.itemWidth
-                        onEditingFinished:{parent.robotID = value}}
+                    SpinBox{ minimumValue:1; maximumValue:12; value:moveParametersList.robotID; width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.robotID = value}}
                     Text{ text:"Stop"; color: tcolor }
-                    Button{ text:qsTr("[Space]") + translator.emptyString;width:parent.itemWidth}
+                    Button{ text:qsTr("[Space]") + translator.emptyString;width:moveParametersList.itemWidth}
 
                     Text{ text:" " }
 
                     Text{ text:" " }
 
                     Text{ text:qsTr("Vx [W/S]") + translator.emptyString; color: tcolor }
-                    SpinBox{ minimumValue:-crazyShow.m_VEL; maximumValue:crazyShow.m_VEL; value:parent.velX;width:parent.itemWidth
-                        onEditingFinished:{parent.velX = value;}}
+                    SpinBox{ minimumValue:-moveParametersList.m_VEL; maximumValue:moveParametersList.m_VEL; value:moveParametersList.velX;width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.velX = value;}}
 
                     Text{ text:qsTr("MaxVel") + translator.emptyString; color: tcolor }
-                    SpinBox{ minimumValue:1; maximumValue:crazyShow.velocityMax; value:parent.m_VEL;width:parent.itemWidth
-                        onEditingFinished:{parent.m_VEL = value;}}
+                    SpinBox{ minimumValue:1; maximumValue:moveParametersList.velocityMax; value:moveParametersList.m_VEL;width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.m_VEL = value;}}
 
                     Text{ text:qsTr("KickMode [Up]")  + translator.emptyString; color: tcolor}
-                    Button{ text:(parent.kickmode?qsTr("chip"):qsTr("flat")) + translator.emptyString;width:parent.itemWidth
+                    Button{ text:(moveParametersList.kickmode?qsTr("chip"):qsTr("flat")) + translator.emptyString;width:moveParametersList.itemWidth
                         onClicked: {
-                            parent.kickmode = !parent.kickmode
+                            moveParametersList.kickmode = !moveParametersList.kickmode
                         }
                     }
 
                     Text{ text:qsTr("Vr [Left/Right]")  + translator.emptyString; color: tcolor}
-                    SpinBox{ minimumValue:-crazyShow.m_VELR; maximumValue:crazyShow.m_VELR; value:parent.velR;width:parent.itemWidth
-                        onEditingFinished:{parent.velR = value;}}
+                    SpinBox{ minimumValue:-moveParametersList.m_VELR; maximumValue:moveParametersList.m_VELR; value:moveParametersList.velR;width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.velR = value;}}
 
                     Text{ text:qsTr("MaxVelR") + translator.emptyString; color: tcolor }
-                    SpinBox{ minimumValue:1; maximumValue:crazyShow.velocityRMax; value:parent.m_VELR;width:parent.itemWidth
-                        onEditingFinished:{parent.m_VELR = value;}}
+                    SpinBox{ minimumValue:1; maximumValue:moveParametersList.velocityRMax; value:moveParametersList.m_VELR;width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.m_VELR = value;}}
 
                     Text{ text:qsTr("Shoot [E]") + translator.emptyString; color: tcolor}
-                    Button{ text:(parent.shoot? qsTr("true") : qsTr("false")) + translator.emptyString;width:parent.itemWidth
+                    Button{ text:(moveParametersList.shoot? qsTr("true") : qsTr("false")) + translator.emptyString;width:moveParametersList.itemWidth
                         onClicked: {
-                            parent.shoot = !parent.shoot;
+                            moveParametersList.shoot = !moveParametersList.shoot;
                         }
                     }
 
                     Text{ text:qsTr("Vy [A/D]") + translator.emptyString; color: tcolor}
-                    SpinBox{ minimumValue:-crazyShow.m_VEL; maximumValue:crazyShow.m_VEL; value:parent.velY;width:parent.itemWidth
-                        onEditingFinished:{parent.velY = value;}}
+                    SpinBox{ minimumValue:-moveParametersList.m_VEL; maximumValue:moveParametersList.m_VEL; value:moveParametersList.velY;width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.velY = value;}}
 
                     Text{ text:qsTr("KickPower") + translator.emptyString; color: tcolor }
-                    SpinBox{ minimumValue:0; maximumValue:parent.kickPowerMax; value:parent.power;width:parent.itemWidth
-                        onEditingFinished:{parent.power = value;}}
+                    SpinBox{ minimumValue:0; maximumValue:moveParametersList.kickPowerMax; value:moveParametersList.power;width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.power = value;}}
 
                     Text{ text:qsTr("Dribb [Q]") + translator.emptyString; color: tcolor }
-                    Button{ text:(parent.dribble ? qsTr("true") : qsTr("false")) +translator.emptyString;width:parent.itemWidth
+                    Button{ text:(moveParametersList.dribble ? qsTr("true") : qsTr("false")) +translator.emptyString;width:moveParametersList.itemWidth
                         onClicked: {
-                            parent.dribble = !parent.dribble;
+                            moveParametersList.dribble = !moveParametersList.dribble;
                         }
                     }
 
                     Text{ text:qsTr("DribLevel")  + translator.emptyString; color: tcolor}
-                    SpinBox{ minimumValue:0; maximumValue:crazyShow.dribbleMaxLevel; value:parent.dribbleLevel;width:parent.itemWidth
-                        onEditingFinished:{parent.dribbleLevel = value;}}
+                    SpinBox{ minimumValue:0; maximumValue:moveParametersList.dribbleMaxLevel; value:moveParametersList.dribbleLevel;width:moveParametersList.itemWidth
+                        onEditingFinished:{moveParametersList.dribbleLevel = value;}}
 
                     Text{ text:" " }
 
                     Text{ text:" " }
 
                     Rectangle{
-                        width:parent.itemWidth; height:20; color:parent.dribble ? "blue" : "lightgrey";
+                        width:moveParametersList.itemWidth; height:20; color:moveParametersList.dribble ? "blue" : "lightgrey";
                     }
 
                     Rectangle{
-                        width:parent.itemWidth; height:20; color:parent.shoot ? "red" : "lightgrey";
+                        width:moveParametersList.itemWidth; height:20; color:moveParametersList.shoot ? "red" : "lightgrey";
                     }
 
 
@@ -253,7 +322,7 @@ ApplicationWindow{
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                         case Qt.Key_Escape:
-                            crazyShow.focus = true;
+                            moveParametersList.focus = true;
                             break;
                         default:
                             event.accepted = false;
@@ -262,33 +331,33 @@ ApplicationWindow{
                         event.accepted = true;
                     }
                     function updateStop(){
-                        crazyShow.velX = 0;
-                        crazyShow.velY = 0;
-                        crazyShow.velR = 0;
-                        crazyShow.shoot = false;
-                        crazyShow.dribble = false;
-                        crazyShow.rush = false;
+                        moveParametersList.velX = 0;
+                        moveParametersList.velY = 0;
+                        moveParametersList.velR = 0;
+                        moveParametersList.shoot = false;
+                        moveParametersList.dribble = false;
+                        moveParametersList.rush = false;
                     }
                     function handleKeyboardEvent(e){
                         switch(e){
-                        case 'U':{crazyShow.kickmode = !crazyShow.kickmode;break;}
-                        case 'a':{crazyShow.velY = crazyShow.limitVel(crazyShow.velY-crazyShow.velYStep,-crazyShow.m_VEL,crazyShow.m_VEL);
+                        case 'U':{moveParametersList.kickmode = !moveParametersList.kickmode;break;}
+                        case 'a':{moveParametersList.velY = moveParametersList.limitVel(moveParametersList.velY-moveParametersList.velYStep,-moveParametersList.m_VEL,moveParametersList.m_VEL);
                             break;}
-                        case 'd':{crazyShow.velY = crazyShow.limitVel(crazyShow.velY+crazyShow.velYStep,-crazyShow.m_VEL,crazyShow.m_VEL);
+                        case 'd':{moveParametersList.velY = moveParametersList.limitVel(moveParametersList.velY+moveParametersList.velYStep,-moveParametersList.m_VEL,moveParametersList.m_VEL);
                             break;}
-                        case 'w':{crazyShow.velX = crazyShow.limitVel(crazyShow.velX+crazyShow.velXStep,-crazyShow.m_VEL,crazyShow.m_VEL);
+                        case 'w':{moveParametersList.velX = moveParametersList.limitVel(moveParametersList.velX+moveParametersList.velXStep,-moveParametersList.m_VEL,moveParametersList.m_VEL);
                             break;}
-                        case 's':{crazyShow.velX = crazyShow.limitVel(crazyShow.velX-crazyShow.velXStep,-crazyShow.m_VEL,crazyShow.m_VEL);
+                        case 's':{moveParametersList.velX = moveParametersList.limitVel(moveParametersList.velX-moveParametersList.velXStep,-moveParametersList.m_VEL,moveParametersList.m_VEL);
                             break;}
-                        case 'q':{crazyShow.dribble = !crazyShow.dribble;
+                        case 'q':{moveParametersList.dribble = !moveParametersList.dribble;
                             break;}
-                        case 'e':{crazyShow.shoot = !crazyShow.shoot;
+                        case 'e':{moveParametersList.shoot = !moveParametersList.shoot;
                             break;}
-                        case 'L':{crazyShow.velR = crazyShow.limitVel(crazyShow.velR-crazyShow.velRStep,-crazyShow.m_VELR,crazyShow.m_VELR);
+                        case 'L':{moveParametersList.velR = moveParametersList.limitVel(moveParametersList.velR-moveParametersList.velRStep,-moveParametersList.m_VELR,moveParametersList.m_VELR);
                             break;}
-                        case 'R':{crazyShow.velR = crazyShow.limitVel(crazyShow.velR+crazyShow.velRStep,-crazyShow.m_VELR,crazyShow.m_VELR);
+                        case 'R':{moveParametersList.velR = moveParametersList.limitVel(moveParametersList.velR+moveParametersList.velRStep,-moveParametersList.m_VELR,moveParametersList.m_VELR);
                             break;}
-                        case 'S':{crazyShow.updateStop();
+                        case 'S':{moveParametersList.updateStop();
                             break;}
                         default:
                             return false;
@@ -297,52 +366,57 @@ ApplicationWindow{
                     }
                     //serial.updateCommandParams在C++中实现
                     function updateCommand(){
-                        serial.updateCommandParams(crazyShow.robotID,crazyShow.velX,crazyShow.velY,crazyShow.velR,crazyShow.dribble,crazyShow.dribbleLevel,crazyShow.kickmode,crazyShow.shoot,crazyShow.power);
+                        packet.updateMoveParams(moveParametersList.robotID, moveParametersList.velX,
+                                                moveParametersList.velY, moveParametersList.velR,
+                                                moveParametersList.dribble, moveParametersList.dribbleLevel,
+                                                moveParametersList.kickmode, moveParametersList.shoot,
+                                                moveParametersList.power);
                     }
                     function limitVel(vel,minValue,maxValue){
                         if(vel>maxValue) return maxValue;
                         if(vel<minValue) return minValue;
                         return vel;
                     }
+                    //键盘快捷键定义
                     Shortcut{
                         sequence:"A";
-                        onActivated:crazyShow.handleKeyboardEvent('a');
+                        onActivated:moveParametersList.handleKeyboardEvent('a');
                     }
                     Shortcut{
                         sequence:"Up";
-                        onActivated:crazyShow.handleKeyboardEvent('U');
+                        onActivated:moveParametersList.handleKeyboardEvent('U');
                     }
                     Shortcut{
                         sequence:"D"
-                        onActivated:crazyShow.handleKeyboardEvent('d');
+                        onActivated:moveParametersList.handleKeyboardEvent('d');
                     }
                     Shortcut{
                         sequence:"W"
-                        onActivated:crazyShow.handleKeyboardEvent('w');
+                        onActivated:moveParametersList.handleKeyboardEvent('w');
                     }
                     Shortcut{
                         sequence:"S"
-                        onActivated:crazyShow.handleKeyboardEvent('s');
+                        onActivated:moveParametersList.handleKeyboardEvent('s');
                     }
                     Shortcut{
                         sequence:"Q"
-                        onActivated:crazyShow.handleKeyboardEvent('q');
+                        onActivated:moveParametersList.handleKeyboardEvent('q');
                     }
                     Shortcut{
                         sequence:"E"
-                        onActivated:crazyShow.handleKeyboardEvent('e');
+                        onActivated:moveParametersList.handleKeyboardEvent('e');
                     }
                     Shortcut{
                         sequence:"Left"
-                        onActivated:crazyShow.handleKeyboardEvent('L');
+                        onActivated:moveParametersList.handleKeyboardEvent('L');
                     }
                     Shortcut{
                         sequence:"Right"
-                        onActivated:crazyShow.handleKeyboardEvent('R');
+                        onActivated:moveParametersList.handleKeyboardEvent('R');
                     }
                     Shortcut{
                         sequence:"Space"
-                        onActivated:crazyShow.handleKeyboardEvent('S');
+                        onActivated:moveParametersList.handleKeyboardEvent('S');
                     }
                 }
             }
@@ -350,12 +424,12 @@ ApplicationWindow{
             GroupBox{
                 title: qsTr("PID Tune Mode (Switch robot MODE to 5 first)") + translator.emptyString;
                 width: parent.width - 15;
-                anchors.top: groupBox2.bottom;
+                anchors.top: moveParameters.bottom;
                 anchors.horizontalCenter: parent.horizontalCenter;
-                id: groupBox3;
+                id: pidParameters;
                 Grid{
-                    id: pidTuneShow;
-                    anchors.top: pidTuneModeText.bottom;
+                    id: pidParametersList;
+                    anchors.top: pidTuneMode.bottom;
                     columns: 8;
                     verticalItemAlignment: Grid.AlignVCenter;
                     horizontalItemAlignment: Grid.AlignLeft;
@@ -372,27 +446,61 @@ ApplicationWindow{
                     property real min_d: 0.0;
                     property real max_d: 10.0;
                     property bool mode: false;
-                    Text { id: pidTuneModeText; text: qsTr("PID Tune Mode"); color: tcolor }
+                    Text { id: pidTuneMode; text: qsTr("PID Tune Mode"); color: tcolor }
                     CheckBox {
+                        id: pidCheckBox;
+                        enabled: ture;
                         onClicked: {
-                            pidTuneShow.mode = !pidTuneShow.mode;
+                            pidParametersList.mode = !pidParametersList.mode;
+                            if(pidParametersList.mode)
+                            {
+                                packet.updateCommandMode(1);
+                                shootPowerCurveCheckbox.enabled = false;
+                            }else{
+                                packet.updateCommandMode(0);
+                                shootPowerCurveCheckbox.enabled = true;
+                            }
                         }
                     }
-                    Text {id: kpText; text: qsTr("Kp")  + translator.emptyString; color: tcolor }
-                    TextField{ validator: DoubleValidator{decimals: 5; bottom: pidTuneShow.min_p; top: pidTuneShow.max_p;} focus: false;
-                        text: "0.0025"; onEditingFinished: pidTuneShow.p = text; width: 100;}
-                    Text { text: qsTr("Ki")  + translator.emptyString; color: tcolor }
-                    TextField{ validator: DoubleValidator{decimals: 5; bottom: pidTuneShow.min_i; top: pidTuneShow.max_i;} focus: true;
-                        text: "0.0075"; onEditingFinished: pidTuneShow.i = text; width: 100;}
-                    Text { text: qsTr("Kd")  + translator.emptyString; color: tcolor }
-                    TextField{ validator: DoubleValidator{decimals: 5; bottom: pidTuneShow.min_d; top: pidTuneShow.max_d;} focus: true;
-                        text: "0.0000"; onEditingFinished: pidTuneShow.d = text; width: 100;}
-                    function updateMode(){
-                        if(pidTuneShow.mode) {
-                            serial.updatePidParams(pidTuneShow.p, pidTuneShow.i, pidTuneShow.d);
-                            serial.updatePidTuneMode(2);
+                    Text {text: qsTr("Kp")  + translator.emptyString; color: tcolor }
+                    TextField{
+                        validator: DoubleValidator{decimals: 5; bottom: pidParametersList.min_p; top: pidParametersList.max_p;}
+                        focus: true;
+                        text: "0.0025";
+                        onEditingFinished: {
+                            pidParametersList.p = text;
+                            updatePidParameters();
                         }
-                        else serial.updatePidTuneMode(1);
+                        width: 100;
+                    }
+                    Text { text: qsTr("Ki")  + translator.emptyString; color: tcolor }
+                    TextField{
+                        validator: DoubleValidator{decimals: 5; bottom: pidParametersList.min_i; top: pidParametersList.max_i;}
+                        focus: true;
+                        text: "0.0075";
+                        onEditingFinished: {
+                            pidParametersList.i = text;
+                            updatePidParameters();
+                        }
+                        width: 100;
+                    }
+                    Text { text: qsTr("Kd")  + translator.emptyString; color: tcolor }
+                    TextField{
+                        validator: DoubleValidator{decimals: 5; bottom: pidParametersList.min_d; top: pidParametersList.max_d;}
+                        focus: true;
+                        text: "0.0000";
+                        onEditingFinished: {
+                            pidParametersList.d = text;
+                            updatePidParameters();
+                        }
+                        width: 100;
+                    }
+                    //更新参数
+                    function updatePidParameters(){
+                        if(pidParametersList.mode)
+                        {
+                            packet.updatePidParams(pidParametersList.p, pidParametersList.i, pidParametersList.d);
+                        }
                     }
                     Keys.onPressed:getFocus(event);
                     function getFocus(event){
@@ -400,7 +508,7 @@ ApplicationWindow{
                         case Qt.Key_Enter:
                         case Qt.Key_Return:
                         case Qt.Key_Escape:
-                            pidTuneShow.focus = true;
+                            pidParametersList.focus = true;
                             break;
                         default:
                             event.accepted = false;
@@ -415,7 +523,7 @@ ApplicationWindow{
             GroupBox{
                 title: qsTr("Shoot Power Curve Tune Mode (Switch robot MODE to 6 first)") + translator.emptyString;
                 width: parent.width - 15;
-                anchors.top: groupBox3.bottom;
+                anchors.top: pidParameters.bottom;
                 anchors.horizontalCenter: parent.horizontalCenter;
                 id: groupBox4;
                 Grid{
@@ -439,6 +547,8 @@ ApplicationWindow{
                     property bool mode: false;
                     Text { id: shootPowerCurveTuneModeText; text: qsTr("Shoot Power Curve Tune Mode"); color: tcolor }
                     CheckBox {
+                        id: shootPowerCurveCheckbox;
+                        enabled: true;
                         onClicked: {
                             shootPowerCurveTuneShow.mode = !shootPowerCurveTuneShow.mode;
                         }
@@ -499,7 +609,7 @@ ApplicationWindow{
                 anchors.rightMargin: 20;
                 anchors.top:groupBox4.bottom;
                 anchors.topMargin: 10;
-                //enabled : crazyConnect.ifConnected;//如果连接成功按钮才有效
+                //enabled : transmitterConnect.ifConnected;//如果连接成功按钮才有效
                 onClicked:{
                     handleClickEvent();
                 }
