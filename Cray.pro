@@ -15,7 +15,8 @@ HEADERS += \
     $$PWD/src/lib/crc/crc.h \
     $$PWD/src/translation.hpp \
     $$PWD/src/udpSender.h \
-    $$PWD/src/packet.h
+    $$PWD/src/packet.h \
+    src/udpReceiver.h
 
 SOURCES += \
     $$PWD/src/main.cpp \
@@ -23,7 +24,8 @@ SOURCES += \
     $$PWD/src/serialobject.cpp \
     $$PWD/src/lib/crc/crc.cpp \
     $$PWD/src/udpSender.cpp \
-    $$PWD/src/packet.cpp
+    $$PWD/src/packet.cpp \
+    src/udpReceiver.cpp
 
 TRANSLATIONS = t1_zh.ts
 

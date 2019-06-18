@@ -1,7 +1,12 @@
-#include "udpSender.h"
+#include "udpReceiver.h"
 
-udpSender::udpSender()
+udpReceiver::udpReceiver()
 {
+    /*
+     *
+     * TODO
+     *
+     * 需要对应修改*/
     localAddress = "192.168.0.101";
     localPort = 10007;
     localMask = "255.255.255.0";
@@ -16,23 +21,22 @@ udpSender::udpSender()
     socket.bind(QHostAddress(remoteAddress), remotePort);
 }
 
-udpSender::~udpSender()
+udpReceiver::~udpReceiver()
 {
     configDHCP();
 }
 
-void udpSender::sendPacket()
+void udpReceiver::receivePacket()
 {
-    socket.writeDatagram(packet, QHostAddress(remoteAddress), remotePort);
-    qDebug() << "From udpSender: send udp packet......";
+    /*TODO*/
 }
 
-void udpSender::updatePacket(QByteArray *p)
+void udpReceiver::getPacket(QByteArray *p)
 {
-    packet = *p;
+    /*TODO*/
 }
 
-void udpSender::configLocalIP(QString lIP, quint16 lPort, QString lMask, QString lGate)
+void udpReceiver::configLocalIP(QString lIP, quint16 lPort, QString lMask, QString lGate)
 {
     localAddress = lIP;
     localPort = lPort;
@@ -44,25 +48,25 @@ void udpSender::configLocalIP(QString lIP, quint16 lPort, QString lMask, QString
              + localAddress + " " + localMask + " " + localGate;
     cmd.start(command);
     cmd.waitForFinished();
-    qDebug() << "From udpSender: Config local ip: " << localAddress << " port: " << localPort
+    qDebug() << "From udpReceiver: Config local ip: " << localAddress << " port: " << localPort
              << " mask: " << localMask << " gate: " << localGate;
 }
 
-void udpSender::configRemoteIP(QString rIP, quint16 rPort, QString rMask, QString rGate)
+void udpReceiver::configRemoteIP(QString rIP, quint16 rPort, QString rMask, QString rGate)
 {
     remoteAddress = rIP;
     remotePort = rPort;
     remoteMask = rMask;
     remoteGate = rGate;
-    qDebug() << "From udpSender: Config remote ip: " << remoteAddress << " port: " << remotePort
+    qDebug() << "From udpReceiver: Config remote ip: " << remoteAddress << " port: " << remotePort
              << " mask: " << remoteMask << " gate: " << remoteGate;
 }
 
-void udpSender::configDHCP()
+void udpReceiver::configDHCP()
 {
     QProcess cmd;
     QString command = "netsh interface ip set address \"以太网\" dhcp";
     cmd.start(command);
     cmd.waitForFinished();
-    qDebug() << "From udpSender: Config local ip to DHCP";
+    qDebug() << "From udpReceiver: Config local ip to DHCP";
 }
