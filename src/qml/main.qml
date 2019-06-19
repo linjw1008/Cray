@@ -24,11 +24,10 @@ ApplicationWindow{
     Client.Packet {id : packet; }
     Timer{
         id:timer;
-        interval:100;//15ms启动一次
+        interval:50;//15ms启动一次
         running:false;
         repeat:true;
         onTriggered: {
-            pidTuneShow.updateMode();//设置是否为PID调节模式
             shootPowerCurveTuneShow.updateMode();//设置是否为射门力度曲线调节模式
             moveParametersList.updateCommand();//调用serial.updateCommandParams()
             serial.sendCommand();//把数据发出去

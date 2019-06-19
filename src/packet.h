@@ -54,12 +54,13 @@ private:
     udpSender udpSender;
 
     quint8 commandPacketWidth = 25;
-    quint8 configPacketWidth = 25;
+    quint8 configPacketWidth = 5;
 
     void getPIDParamsPacket(quint8 *packet);
     //void encodeMoveParamsPacket();
     void getMoveParamsPacket(quint8 *packet);
     void getShootPowerCurveParamsPacket(quint8 *packet);
+    quint8 checkSum(quint8 *packet, quint8 len);
 };
 
 #endif // PACKET_H

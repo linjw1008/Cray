@@ -20,15 +20,16 @@ packet::~packet()
 bool packet::getConfigPacket(quint8 *configPacket)
 {
     //获取发射机设置包（不到小车）
-    configPacket = (quint8*)malloc(configPacketWidth*sizeof(quint8));
     configPacket[0] = 0xff;
     configPacket[1] = transmitterFrequency;
     configPacket[2] = transmitterBandwidth;
     configPacket[3] = transmitterMode;
-    configPacket[4] = 0;
-    for(quint8 i = 0; i < configPacketWidth; i++){
+    configPacket[4] = checkSum(configPacket, 5);
+/*    for(quint8 i = 0; i < configPacketWidth-1; i++){
         configPacket[4] = configPacket[4] + configPacket[i];
     }
+*/
+
     return true;
 }
 
@@ -165,6 +166,8 @@ void packet::getPIDParamsPacket(quint8 *packet)
     for(int i = 0; i < 4; i++)packet[17 + i] = quint8(temp[i]);
     //clear Bytes
     packet[21] = packet[22] = packet[23] = packet[24] = 0;
+
+    packet[24] = checkSum(packet, 25);
 }
 
 void packet::getMoveParamsPacket(quint8 *packet)
@@ -204,6 +207,7 @@ void packet::getMoveParamsPacket(quint8 *packet)
 //
     packet[15] = ((abs(velX) & 0x180) >> 1) | ((abs(velY) & 0x180) >> 3) | ((abs(velR) & 0x180) >> 5);
     packet[18] = (shoot ? shootPowerLevel:0) & 0x7f;
+    packet[24] = checkSum(packet, 25);
 }
 
 void packet::getShootPowerCurveParamsPacket(quint8 *packet)
@@ -247,6 +251,17 @@ void packet::getShootPowerCurveParamsPacket(quint8 *packet)
     packet[15] = packet[16] = packet[17] = packet[18] = packet[19]
                = packet[20] = packet[21] = packet[22] = packet[23]
                = packet[24] = 0;
+    packet[24] = checkSum(packet, 25);
+}
+
+quint8 packet::checkSum(quint8 *packet, quint8 len)
+{
+    quint8 checkSum = 0;
+    for(int i = 0; i < len - 1; i++)
+    {
+        checkSum = checkSum + packet[i];
+    }
+    return checkSum;
 }
 
 //通过UDP发送packet
@@ -274,7 +289,7 @@ void packet::sendUdpPacket(quint8 type)
     for (int i = 0;i < width; i++) {
         q[i] =  char(packet[i]);
     }
-    qDebug() << "   udp send command" << q.toHex();
+    qDebug() << "   udp send command (length: "<<width<<")" << q.toHex();
     udpSender.updatePacket(&q);
     udpSender.sendPacket();
 }
