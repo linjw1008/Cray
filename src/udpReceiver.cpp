@@ -17,23 +17,31 @@ udpReceiver::udpReceiver()
     remoteGate = "192.168.0.1";
     packet = "test";
     configLocalIP(localAddress, localPort, localMask, localGate);
-    //如果只发送数据不需要bind？？？？
+    //???????
     socket.bind(QHostAddress(remoteAddress), remotePort);
 }
 
 udpReceiver::~udpReceiver()
 {
-    configDHCP();
+    //configDHCP();
 }
 
 void udpReceiver::receivePacket()
 {
-    /*TODO*/
+    /*TODO
+    有待测试
+    */
+    char *receivedPacket;
+    socket.readDatagram(receivedPacket, 25);
+    packet = QByteArray(receivedPacket);
 }
 
 void udpReceiver::getPacket(QByteArray *p)
 {
-    /*TODO*/
+    /*TODO
+    有待测试
+    */
+    p = &packet;
 }
 
 void udpReceiver::configLocalIP(QString lIP, quint16 lPort, QString lMask, QString lGate)

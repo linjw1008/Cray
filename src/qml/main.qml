@@ -189,7 +189,7 @@ ApplicationWindow{
                     if(isConnected){
                         timer.stop();
                         transmitterConnect.state = "unconnected";
-                        packet.configDHCP();
+                        //packet.configDHCP();
                     }else{
                         transmitterConnect.state = "connected";
                         packet.configUdpRemoteIP(configParameters.remoteIP, configParameters.remotePort, configParameters.remoteMask, configParameters.remoteGate);
